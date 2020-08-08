@@ -1,0 +1,181 @@
+[스프링 게시판 개요]
+
+게시판 프로젝트 구성
+
+ ## 패키지 : bbsCommand, bbsController, bbsDAO, bbsVO
+
+	* bbsCommand 구성 : 커맨드 객체의 구성
+	 
+	 - Bcmd : 인터페이스
+	 
+		 public interface Bcmd {
+	 		void service(Model model);
+		 }  
+	
+	 - ListCmd.java : 게시판의 리스트를 DB로부터 가져오는 객체
+	   
+		public class ListCmd implements Bcmd {
+				
+			@Override
+			public void service(Model model) {
+				BDAO dao = new BDAO();
+				ArrayList<BVO> bVOs = dao.list();
+				model.addAttribute("list", bVOs);
+			}
+		}
+	  - WriteCmd.java : 글 등록 처리
+		public class WriteCmd implements Bcmd {
+		
+			@Override
+			public void service(Model model) {
+				
+				Map<String, Object> map  = model.asMap();
+				
+				HttpServletRequest request = (HttpServletRequest)map.get("request");
+				String bName = request.getParameter("bName");		
+				String bSubject = request.getParameter("bSubject");
+				String bContent = request.getParameter("bContent");
+				
+				BDAO dao = new BDAO();
+				dao.write(bName, bSubject, bContent);		
+			}
+		}
+	
+	   -ContentCmd.java : 내용보기 처리	
+		public class ContentCmd implements Bcmd {
+		
+			@Override
+			public void service(Model model) {
+				Map<String, Object> map = model.asMap();
+				HttpServletRequest request = (HttpServletRequest)map.get("request");
+				
+				String bNo = request.getParameter("bNo");
+				
+				BDAO dao = new BDAO();
+				BVO bVo = dao.contentView(bNo);
+				
+				model.addAttribute("contentView", bVo);		
+			}
+		}
+		
+		- DeleteCmd.java : 삭제처리
+			public void service(Model model) {
+				
+				Map<String, Object> map = model.asMap();
+				HttpServletRequest request = (HttpServletRequest)map.get("request");
+				
+				String bNo = request.getParameter("bNo");
+				BDAO bDAO = new BDAO();
+				bDAO.delete(bNo);
+		
+			}		
+		
+		
+				
+		- ModifyCmd.java : 수정처리(contentView.jsp파일에서 수정한 내용을 DB에 등록)				   
+		   public void service(Model model){
+				Map<String, Object> map = model.asMap();
+				HttpServletRequest request = (HttpServletRequest)map.get("request");
+				String bNo = request.getParameter("bNo");
+				String bName = request.getParameter("bName");
+				String bSubject = request.getParameter("bSubject");
+				String bContent = request.getParameter("bContent");
+				
+				BDAO bDAO = new BDAO();
+				bDAO.modify(bNo, bName, bSubject, bContent);
+			}		
+		
+		
+		- ReplyFormCmd.java : 답글 내용 보기
+		
+			public void service(Model model) {
+				// TODO Auto-generated method stub
+				
+				Map<String, Object> map = model.asMap();
+				HttpServletRequest request = (HttpServletRequest)map.get("request");
+				String bNo = request.getParameter("bNo");
+				
+				BDAO bDAO = new BDAO();
+				BVO bVO = bDAO.replyForm(bNo);
+				
+				model.addAttribute("replyForm", bVO);
+			}		
+		
+		- ReplyCmd.java : 답글		
+		
+			public void service(Model model) {
+				// TODO Auto-generated method stub
+				Map<String, Object> map = model.asMap();
+				HttpServletRequest request = (HttpServletRequest)map.get("request");
+				
+				String bNo = request.getParameter("bNo");
+				String bName = request.getParameter("bName");
+				String bSubject = request.getParameter("bSubject");
+				String bContent = request.getParameter("bContent");
+				String bGroup = request.getParameter("bGroup");
+				String bStep = request.getParameter("bStep");
+				String bIndent = request.getParameter("bIndent");
+				
+				BDAO bDAO = new BDAO();
+				bDAO.replyOk(bNo, bName, bSubject, bContent, bGroup, bStep, bIndent);
+			}		
+	* bbsController	패키지 구성
+		- BController.java
+	
+	* bbsDAO 패키지 구성
+		- BDAO.java
+		
+	* bbsVO 패키지 구성
+		- BVO.java
+	  
+  ## 뷰
+  	list.jsp : 게시판 리스트
+  	writeForm.jsp : 글쓰기 폼 페이지
+  	contentView.jsp : 내용보기 페이지 / 수정 폼 페이지
+ 	replyForm : 답글 쓰기 페이지
+ 
+ [스프링 JDBC를 위한 템플릿] 
+    . 기능:  Connection을 구하고, try-catch-finally로 자원을 관리하는 등의 중복된 코드를 제거
+    . JDBC를 위한 세개의 템플릿 클래스
+      1) JdbcTemplate : 스프링의 가장 기본적인 템플릿 색인된 파라미터(indexed parameter) 기반의 쿼리를 통해
+         				데이터베이스에 액세스하는 기능을 제공
+      
+      2) NamedParameterJdbcTemplate : SQL과 값들을 색인된 파라미터 대신 명명된 파라미터(named parameter)로
+      					바인딩하여 쿼리를 수행할 수 있게 해주는 JDBC 템플릿 클래스
+      
+      3) SimpleJdbcTemplate : 자바 5부터 지원하는 기능중에 오토박싱, 제네릭스, 가변 파라미터 목록등을 활용해서
+      					쉽게 템플릿을 사용할 수 있도록 하는 템플릿 클래스 (3.1 에서는 삭제 되었음)
+     
+    . 자바 1.4 이하의 버전에서는 사용할 수 없음.
+ 
+ 
+ 
+ [JdbcTemplate 사용방법]
+	
+  # pom.xml에서 라이브러리를 블러온다. : org.springframework.spring-jdbc 설정 
+ 
+ 		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-jdbc</artifactId>
+			<version>4.1.4.RELEASE</version>
+		</dependency>
+ 
+  # DataSource 설정 (servlet-context.xml)
+ 	<beans:bean name="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<beans:property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />
+		<beans:property name="url" value="jdbc:oracle:thin:@localhost:1521:orcl"/>
+		<beans:property name="username" value="scott" />
+		<beans:property name="password" value="1234" />
+	</beans:bean>
+  
+  
+  # JdbcTemplate 설정(servlet-context.xml)
+  	
+  	<beans:bean name="template" class="org.springframework.jdbc.core.JdbcTemplate">
+		<beans:property name="dataSource" ref="dataSource" />
+	</beans:bean>
+  
+  
+  
+  
+  	  		 
